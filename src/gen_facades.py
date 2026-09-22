@@ -388,7 +388,8 @@ def build_scene(
 
     for name, faces in tqdm(groups_items):
         raise_if_cancelled(cancel_event)
-        walls: list[trimesh.Trimesh] = []
+        wall_parts: list[trimesh.Trimesh] = []
+        roof_parts: list[trimesh.Trimesh] = []
 
         for face in faces:
             raise_if_cancelled(cancel_event)
@@ -398,7 +399,7 @@ def build_scene(
             if abs(normal[1]) >= 0.01:
                 plane = create_plane_from_n_points(points)
                 plane.apply_translation(-normal * 0.2)
-                walls.append(plane)
+                roof_parts.append(plane)
                 continue
 
             wall_mesh = trimesh.load(
@@ -408,7 +409,7 @@ def build_scene(
             if isinstance(wall_mesh.visual.material, trimesh.visual.material.PBRMaterial):
                 wall_mesh.visual.material = wall_mesh.visual.material.to_simple()
 
-            walls.append(
+            wall_parts.append(
                 place_wall_mesh(
                     wall_mesh,
                     points,
@@ -420,7 +421,19 @@ def build_scene(
             wall_index += 1
 
         raise_if_cancelled(cancel_event)
-        scene.add_geometry(trimesh.util.concatenate(walls), node_name=name, geom_name=name)
+        if wall_parts:
+            scene.add_geometry(
+                trimesh.util.concatenate(wall_parts),
+                node_name=name,
+                geom_name=name,
+            )
+        if roof_parts:
+            roof_name = f"{name}__roof"
+            scene.add_geometry(
+                trimesh.util.concatenate(roof_parts),
+                node_name=roof_name,
+                geom_name=roof_name,
+            )
 
     raise_if_cancelled(cancel_event)
     return scene
